@@ -1,0 +1,1436 @@
+from tkinter import *
+from PIL import ImageTk, Image
+import sqlite3
+from tkinter import messagebox
+import random
+import smtplib
+from email.message import EmailMessage
+import customtkinter
+from customtkinter import *
+from tkinter import ttk
+from fpdf import FPDF
+from tkinter import simpledialog, messagebox
+import os 
+import time
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+import string
+import threading
+from winotify import Notification, audio
+import openai
+from tkinter import scrolledtext as st
+from tktooltip import ToolTip
+import json
+from datetime import datetime, timedelta
+import pandas as pd
+
+
+customtkinter.set_appearance_mode("system")
+
+conn = sqlite3.connect("alldata.db")
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE IF NOT EXISTS teacherdata (
+    id INTEGER PRIMARY KEY,
+    fullname text NOT NULL,
+    email text UNIQUE NOT NULL,
+    password text NOT NULL,   
+    homeroomgrade INT NOT NULL,  
+    division text NOT NULL,
+    subject text NOT NULL,
+    notes text 
+    
+)
+""")
+
+
+cur.execute("""
+CREATE TABLE IF NOT EXISTS studentdata (
+    id INTEGER PRIMARY KEY,
+    studentID INT NOT NULL,
+    firstname text NOT NULL,
+    lastname text NOT NULL,   
+    grade INT NOT NULL,  
+    division text NOT NULL,
+    subjects INTVAR NOT NULL
+)
+""")
+
+
+cur.execute("""
+CREATE TABLE IF NOT EXISTS attendancedata (
+id INTEGER PRIMARY KEY, 
+student_id INTEGER, 
+status TEXT, 
+date TEXT,
+FOREIGN KEY(student_id) 
+REFERENCES studentdata(id)
+)
+""")
+
+
+
+login = Tk()
+rootH = 750
+rootW = 1500
+
+screenH = login.winfo_screenheight()
+screenW = login.winfo_screenwidth()
+yC = (screenH / 2) - (rootH / 2)
+xC = (screenW / 2) - (rootW / 2)
+
+login.geometry(f"{rootW}x{rootH}+{int(xC)}+{int(yC)}")
+login.state("normal")
+login.resizable(False, False)
+login.title("Inconnect - Login")
+
+student_id = IntVar()
+student_fname = StringVar()
+student_lname = StringVar()
+
+
+def SignUp():
+
+    global userHomeroom, userDiv, userName, user_email, user_password
+    
+    body_frame = Frame(login, width=1500, height=750)
+    body_frame.place(x=0, y=0)
+
+    image_frame = Frame(body_frame, width=750, height=750)
+    image_frame.pack(side=LEFT)
+
+    image_label = Label(image_frame, image=photo_image)
+    image_label.place(x=75, y=75)
+
+    login_main_frame = Frame(body_frame, width=750, height=750)
+    login_main_frame.pack(side=RIGHT)
+    
+    signupframe = Frame(login_main_frame, width=1500, height=750)
+    signupframe.place(x=0, y=0)
+
+    mainframe = Frame(signupframe, width=1500, height=750)
+    mainframe.pack(side=LEFT)
+
+    login_label = Label(mainframe, text="Sign Up", font=("lato", 32))
+    login_label.place(x=86, y=71)
+    
+    gobackButton = Button(signupframe, cursor="hand2", image=go_back_image, relief="flat", text="work", foreground='black', borderwidth=0, command=LogIn)
+    
+    gobackButton.place(x=55, y=90)
+    ToolTip(gobackButton, msg='Go Back To Log In', delay=0.1)
+
+    firstName = customtkinter.CTkEntry(master=signupframe, font=("lato", 24), height=55, corner_radius=20,
+                                    width=300, placeholder_text="First Name", fg_color="#E7E7E7", text_color="black", border_width=3)
+
+    firstName.place(x=55, y=161)
+    
+    lastName = customtkinter.CTkEntry(master=signupframe, font=("lato", 24), height=55, corner_radius=20,
+                                    width=290, placeholder_text="Last Name", fg_color="#E7E7E7", text_color="black", border_width=3)
+
+    lastName.place(x=372, y=161)
+
+
+    user_email = customtkinter.CTkEntry(master=signupframe, font=("lato", 24), height=55, corner_radius=20,
+                                    width=607, placeholder_text="Email", fg_color="#E7E7E7", text_color="black", border_width=3)
+
+
+    user_email.place(x=55, y=268)
+    ToolTip(user_email, msg='*Please enter a valid email ID\n*An otp will be sent for verification\n', delay=0.1)
+
+
+    user_password = customtkinter.CTkEntry(master=signupframe, font=("lato", 24), height=55, corner_radius=20,
+                                    width=607, placeholder_text="Password", fg_color="#E7E7E7", text_color="black", border_width=3)
+
+
+    user_password.place(x=55, y=375)
+    ToolTip(user_password, msg='*Password length should be more than 8 characters\n *Please Remember your Password\n', delay=0.1)
+
+    
+    options_listbg = ["5", "6", "7", "8", "9", "10", "11", "12"]
+
+    userHomeroom = StringVar(mainframe)
+    userHomeroom.set("Grade")
+
+    homeent = OptionMenu(mainframe, userHomeroom, *options_listbg)
+    homeent.config(fg="black", relief="flat", 
+                highlightcolor="black", highlightbackground="black", width=25, height=3)
+
+    homeent.place(x=55, y=482)
+    
+    options_listdv = ["A", "B", "C", "D", "E", "F"]
+
+    userDiv = StringVar(mainframe)
+    userDiv.set("Division")
+
+    divent = OptionMenu(mainframe, userDiv, *options_listdv)
+    divent.config(fg="black", relief="flat",
+                highlightcolor="black", highlightbackground="black", width=25, height=3)
+
+    divent.place(x=260, y=482)
+    
+    options_listS = [
+        "Mathematics",
+        "Social Studies",
+        "English",
+        "Hindi",
+        "Physics",
+        "Chemistry",
+        "Biology",
+        "History",
+        "Geography",
+        "Computer Science",
+    ]
+
+    userSub = StringVar(mainframe)
+    userSub.set("Subject")
+
+    divent = OptionMenu(mainframe, userSub, *options_listS)
+    divent.config(fg="black", relief="flat", 
+                highlightcolor="black", highlightbackground="black", width=25, height=3)
+
+    divent.place(x=465, y=482)
+    
+    def submit():
+        
+        cur.execute("SELECT email FROM teacherdata WHERE email = ?", (user_email.get(),))
+        existing_email = cur.fetchone()
+        
+        
+        if firstName.get() == "" or lastName.get() == "" or user_email.get() == "" or user_password.get() == "" or userHomeroom.get() == "Select" or userDiv.get() == "Select" or userSub.get() == "Select your subject":
+            messagebox.showerror('ERROR', 'Error: Please fill in details')
+            
+        elif len(user_password.get()) < 8:
+            messagebox.showerror('ERROR', 'Error: password length should be greater than 8')
+            
+        elif existing_email:
+            messagebox.showerror("User Exists", "A user with this email already exists\nPlease try again")     
+    
+        else:
+            newFrame()
+            
+    submitBTN = customtkinter.CTkButton(master=login_main_frame, text="Submit", font=("lato", 24), cursor="hand2", height=55, width=607, 
+                                        command=submit, text_color="white", corner_radius=20, fg_color="black", hover_color="grey")
+
+    submitBTN.place(x=55, y=634)
+
+
+    def newFrame():
+        
+        global userName
+        userName = f"{firstName.get()} {lastName.get()}".title()
+        print(userName)
+        
+        otpframe = Frame(body_frame, width=1500, height=750)
+        otpframe.place(x=0, y=0)
+    
+        userent = customtkinter.CTkEntry(master=otpframe, font=("lato", 24), height=50,
+                                    width=250, placeholder_text="Enter OTP", fg_color="#E7E7E7", text_color="black", border_width=3)
+
+        userent.place(x=607, y=350)
+        
+        try: 
+            Code = random.randrange(1000,9999)
+            sendEmail = 'inconnect.otp@gmail.com'
+
+            msg = EmailMessage()
+            msg['Subject'] = f"{userName}'s Login OTP"
+            msg['From'] = f"Inconnect Team <{sendEmail}>"
+            msg['To'] = user_email.get()
+            
+            html_content = f"""
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+                <title>OTP Email</title>
+
+                <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+            </head>
+            <body style="margin: 0; font-family: 'Poppins', sans-serif; background: #ffffff; font-size: 14px;">
+                <main>
+                    <div style="margin: 0; margin-top: 10px; padding: 92px 30px 115px; border-radius: 30px;">
+                        <div style="width: 100%; max-width: 489px; margin: 0 auto;">
+                            <h1 style="margin: 0; font-size: 24px; font-weight: 500; color: #1f1f1f;">Your OTP</h1>
+                            <p style="margin: 0; margin-top: 17px; font-size: 16px; font-weight: 500;">Greetings {userName},</p>
+                            <p style="margin: 0; margin-top: 17px; font-weight: 500; letter-spacing: 0.56px;">
+                                Thank you for choosing Inconnect. Use the following OTP to verify your email address.
+                                Kindly Do not share this code with others.
+                            </p>
+                            <p style="margin: 0; margin-top: 60px; font-size: 40px; font-weight: 600; letter-spacing: 25px; color: #ba3d4f;">{Code}</p>
+                        </div>
+                    </div>
+                </main>
+            </body>
+            </html>
+            """
+            # Add HTML content to the message
+            msg.add_alternative(html_content, subtype='html')
+
+            # Send the email
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                smtp.login(sendEmail, 'lqomufxspqvisoeg')
+                smtp.send_message(msg)
+            
+        except:
+            print("invalid email address")
+            messagebox.showerror("ERROR", "Invalid Email Please Try Again")
+            
+            
+        def login_enable():
+            strcode = str(Code)
+            if userent.get() != strcode:
+                messagebox.showerror('ERROR', 'Error: Incorrect OTP Please Try Again')
+            else:
+                print("logged in successfully")
+                cur.execute("INSERT INTO teacherdata (fullname, email, password, homeroomgrade, division, subject) VALUES (?, ?, ?, ?, ?, ?)", (userName, user_email.get(), user_password.get(), userHomeroom.get(), userDiv.get(), userSub.get()))
+                conn.commit()
+                LogIn()
+     
+        otpBTN = Button(otpframe, cursor="hand2", image=submit_image, relief="flat", text="work", foreground='black', borderwidth=0, command=login_enable)
+        otpBTN.place(x=868, y=363)
+        ToolTip(otpBTN, msg='Submit', delay=0.1)
+
+
+image = Image.open("resources/Webinar-amico.png")
+resize = image.resize((600, 600))
+photo_image = ImageTk.PhotoImage(resize)
+
+go_back_image = ImageTk.PhotoImage(Image.open("resources/left arrow.png"))
+submit_image = ImageTk.PhotoImage(Image.open("resources/right alignment.png"))
+
+
+def load_saved_credentials():
+    try:
+        with open("user_credentials.json", "r") as file:
+            return json.load(file)
+    except FileNotFoundError:
+        return {}
+
+
+def save_credentials(email, password):
+    data = {"email": email, "password": password}
+    with open("user_credentials.json", "w") as file:
+        json.dump(data, file)
+
+def get_user_email():
+    saved_credentials = load_saved_credentials()
+    if saved_credentials:
+        return saved_credentials.get("email")
+    else:
+        return None
+
+def log_out():
+    save_credentials("", "")
+
+    messagebox.showinfo("Success", "You Have Been Looged out Successfully \n Close Current Window to Log In again")
+        
+
+def LogIn():
+    
+    saved_credentials = load_saved_credentials()
+    if saved_credentials:
+        main()  
+        return
+    
+    body_frame = Frame(login, width=1500, height=750)
+    body_frame.place(x=0, y=0)
+
+    image_frame = Frame(body_frame, width=750, height=750)
+    image_frame.pack(side=LEFT)
+
+    image_label = Label(image_frame, image=photo_image)
+    image_label.place(x=75, y=75)
+
+    login_main_frame = Frame(body_frame, width=750, height=750)
+    login_main_frame.pack(side=RIGHT)
+
+    login_label = Label(login_main_frame, text="Login to Inconnect", font=("lato", 32))
+    login_label.place(x=55, y=35)
+    
+    email_label = Label(login_main_frame, text="Email", font=("lato", 20))
+    email_label.place(x=52, y=150)
+
+    user_email = customtkinter.CTkEntry(master=login_main_frame, font=("lato", 24), height=50,
+                                    width=500, placeholder_text="xx@gmail.com", fg_color="#E7E7E7", text_color="black", border_width=3)
+
+    user_email.place(x=55, y=205)
+
+    password_label = Label(login_main_frame, text="Password", font=("lato", 20))
+    password_label.place(x=52, y=310)
+
+    user_password = customtkinter.CTkEntry(master=login_main_frame, font=("lato", 24), height=50, 
+                                    width=500, show="*", fg_color="#E7E7E7", text_color="black", border_width=3)
+
+    user_password.place(x=55, y=365)
+    
+    def submit():
+        
+        cur.execute("SELECT * FROM teacherdata WHERE email = ? AND password = ?", (user_email.get(), user_password.get(), ))
+        user = cur.fetchone()
+        
+        if user:
+            save_credentials(user_email.get(), user_password.get())
+            main()
+            
+        else:
+            messagebox.showwarning('ERROR', 'Error: Please fill in the correct details')
+                      
+    submitBTN = customtkinter.CTkButton(master=login_main_frame, text="Submit", font=("lato", 24), cursor="hand2", height=45, width=500, 
+                                        command=submit, corner_radius=20, text_color="white", 
+                                        fg_color="black", hover_color="grey")
+
+    submitBTN.place(x=55, y=634)
+
+    
+    namelbl = Button(login_main_frame, text="New User? Sign up", font=("lato", 12), fg="black", cursor="hand2", height=1, width=26,
+                bg="#F0F0F0", borderwidth=0, activebackground="#F0F0F0", activeforeground="black", underline=26, foreground="#FF7B7B",
+                command = SignUp)
+
+    namelbl.place(x=5, y=95)
+                
+    def showPass():
+        if user_password.cget("show") == "*":
+            
+            show_pass_btn.configure(text="hide password")
+            user_password.configure(show="")
+            
+        else:
+            show_pass_btn.configure(text="show password")
+            user_password.configure(show="*")
+        
+        
+    show_pass_btn = customtkinter.CTkButton(master=login_main_frame, text="show password", command=showPass)
+    show_pass_btn.configure(corner_radius=10)
+    show_pass_btn.place(x=55, y=435)
+
+
+image = Image.open("resources/Teaching-amico.png")
+resize = image.resize((600, 600))
+photo_image = ImageTk.PhotoImage(resize)
+
+
+def main():
+    
+    saved_credentials = load_saved_credentials()
+    if saved_credentials:
+        # Auto-login using saved credentials
+        global email
+        email = saved_credentials.get("email")
+        password = saved_credentials.get("password")
+    
+    login.destroy()
+
+    root = Tk()
+    screenH = root.winfo_screenheight()
+    screenW = root.winfo_screenwidth()
+    yC = (screenH / 2) - (rootH / 2)
+    xC = (screenW / 2) - (rootW / 2)
+    root.geometry(f"{rootW}x{rootH}+{int(xC)}+{int(yC)}")
+    root.state("normal")
+    root.resizable(False, False)
+    root.title("Inconnect - Main")
+    
+    def DashPage():
+        
+        root.title("Inconnect - Dashboard")
+        dash_body = Frame(MainBody, width=1285, height=750)
+        dash_body.pack(side=LEFT)
+        
+        lb = Label(dash_body, text="Welcome To Dashboard", font=('Lato', 24))
+        lb.place(x=51, y=50)
+        lb.pack
+        
+        student_amt_frame = CTkFrame(master=dash_body, corner_radius=20, width=515, height=175, fg_color="#282828")
+        student_amt_frame.place(x=51, y=120)    
+        
+        now = datetime.now()
+        nowt = now.strftime("%d/%m/%Y")
+        
+        cur.execute("SELECT COUNT(*) FROM studentdata WHERE teacher_id=?", (email,))
+        num = cur.fetchone()[0]
+        
+        cur.execute("SELECT COUNT(*) FROM attendancedata WHERE status = ? AND date = ?", ('Present', nowt,))
+        pnum = cur.fetchone()[0]
+        
+        cur.execute("SELECT COUNT(*) FROM attendancedata WHERE status = ? AND date = ?", ('Absent', nowt,))
+        anum = cur.fetchone()[0]
+        
+        student_num = Label(student_amt_frame, text=f"{num} Students", font=('Lato', 36), background="#282828", fg="white")
+        student_num.place(x=27, y=27)
+        
+        absent_student_num = Label(student_amt_frame, text=f"{pnum} Present", font=('Lato', 15), background="#282828", fg="white")
+        absent_student_num.place(x=27, y=95)
+        
+        present_student_num = Label(student_amt_frame, text=f"{anum} Absent", font=('Lato', 15), background="#282828", fg="white")
+        present_student_num.place(x=27, y=120)
+
+        quick_notes_frame = CTkFrame(master=dash_body, corner_radius=20, width=515, height=380, fg_color="#282828")
+        quick_notes_frame.place(x=51, y=329)
+        
+        quick_notes_label = Label(quick_notes_frame, text="Make a Quick Note", font=('Lato', 16), background="#282828", fg="white")
+        quick_notes_label.place(x=45, y=32)
+
+        quick_notes_text = st.ScrolledText(quick_notes_frame)
+        quick_notes_text.config(wrap=WORD, font=('lato', 12), background="#282828", relief=FLAT, fg="white", width=45, height=15)
+        quick_notes_text.place(x=45, y=85)
+        
+        def save_note():
+            note_content = quick_notes_text.get(1.0, END)
+            
+            if not note_content.strip():
+                messagebox.showwarning("Warning", "No content to save.")
+                return
+            
+            title = note_content.split('\n', 1)[0].strip()
+            file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt")], 
+                                                     initialfile=f"{title}.txt" if title else None)
+            if file_path:
+                with open(file_path, "w") as file:
+                    file.write(note_content)
+                messagebox.showinfo("Success", "Note saved successfully.")
+                
+        save_button = Button(quick_notes_frame, cursor="hand2", image=file_save_white, relief="flat", foreground='black', borderwidth=0, command=save_note)
+        save_button.place(x=447, y=32)
+        save_button.config(fg='black', width=10, relief='solid', background='#282828', activebackground='#282828', cursor='hand2')
+        ToolTip(save_button, msg='Save File', delay=0.1)
+        
+        
+    def AttendacePage():
+        
+        root.title("Inconnect - Attendance")
+        WorkBody = Frame(MainBody, width=1285, height=750)
+        WorkBody.pack(side=LEFT)
+        
+        
+        def get_students_by_teacher_email():
+            cur.execute('''SELECT * FROM studentdata 
+                        WHERE teacher_id = ?''', (email,))
+            students = cur.fetchall()
+
+            return [students[1] for students in students]
+        
+        
+        def submit():
+            student_name = selected_student.get()
+            add_attendance(student_name, selected_status.get(), selected_date.get())
+            update_treeview()
+
+
+        def update_treeview():
+            for item in treeview.get_children():
+                treeview.delete(item)
+
+            for row in view_attendance():
+                treeview.insert("", "end", values=row)
+
+
+        def add_attendance(student_name, status, date):
+            
+            cur.execute('''SELECT id FROM attendancedata 
+                        WHERE student_id = (SELECT studentID FROM studentdata WHERE firstname=?) 
+                        AND date = ?''', (student_name, date))
+            
+            existing_entry = cur.fetchone()
+            
+            if existing_entry:
+                
+                messagebox.showerror("Student Already Exists", f"Student named:\n{student_name} already exists")
+                conn.commit()
+                                            
+            else:
+                
+                cur.execute('''INSERT INTO attendancedata (student_id, status, date)
+                            VALUES ((SELECT studentID FROM studentdata WHERE firstname=?), ?, ?)''', (student_name, status, date))
+                conn.commit() 
+                
+                
+        def view_attendance():
+            
+            selected_date_str = selected_date.get()
+            cur.execute('''SELECT studentdata.firstname, attendancedata.status
+                        FROM studentdata 
+                        LEFT JOIN attendancedata ON studentdata.studentID = attendancedata.student_id
+                        WHERE attendancedata.date = ?
+                        ORDER BY studentdata.firstname ASC''', (selected_date_str,))
+            
+            global rows
+            rows = cur.fetchall()
+            return rows
+
+        def update_date(delta):
+            
+            current_date = datetime.strptime(selected_date.get(), "%d/%m/%Y")
+            new_date = current_date + timedelta(days=delta)
+            selected_date.set(new_date.strftime("%d/%m/%Y"))
+            
+            update_treeview()
+            
+        def get_current_date():
+            
+            global now
+            now = datetime.now()
+            return now.strftime("%d/%m/%Y")
+            
+        def export_to_excel():
+            
+            columns = ["Student Name", "Attendance"]
+            df = pd.DataFrame(rows, columns = columns)
+            filename = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")], 
+                                                    initialfile=f"student_attendance_{now.strftime("%d-%m-%Y")}.xlsx")
+            
+            df.to_excel(filename, index=False)
+            
+            
+        selected_student = StringVar(value="Select Students")
+        student_options = get_students_by_teacher_email()
+        student_dropdown = OptionMenu(WorkBody, selected_student, *student_options)
+
+        student_dropdown.config(width=50, height=2)
+        student_dropdown.place(x=879, y=106)
+
+        status_label = Label(WorkBody, text="Attendance Status", font=("lato", 16))
+        status_label.place(x=879, y=220)
+
+        selected_status = StringVar()
+        status_radio_present = CTkRadioButton(master=WorkBody, text='Present', variable=selected_status, 
+                                              value='Present', font=("lato", 16), text_color="black", hover_color="grey",
+                                              fg_color="black")
+        
+        status_radio_present.place(x=879, y=270)
+
+        status_radio_absent = CTkRadioButton(WorkBody, text='Absent', variable=selected_status, 
+                                             value='Absent', font=("lato", 16), text_color="black", hover_color="grey",
+                                             fg_color="black")
+        
+        status_radio_absent.place(x=879, y=300)
+        
+        submit_button = CTkButton(master=WorkBody, text="Submit", command=submit, corner_radius=15, font=("lato", 16), 
+                                  fg_color="#999999", text_color="black", hover_color="grey", width=135, height=50)
+
+        submit_button.place(x=879, y=375)
+
+
+        selected_date = StringVar(value=get_current_date())
+        date_entry = Label(WorkBody, textvariable=selected_date, font=('lato', 20), fg="black", relief="flat", bg="#F0F0F0")
+        date_entry.place(x=120, y=45)
+        
+        
+        dateL = Button(WorkBody, cursor="hand2", image=date_left_image, relief="flat", text="work", 
+                       foreground='black', borderwidth=0, command=lambda: update_date(-1))
+        
+        dateL.place(x=49, y=57)
+        
+        
+        dateR = Button(WorkBody, cursor="hand2", image=date_right_image, relief="flat", text="work", 
+                       foreground='black', borderwidth=0, command=lambda: update_date(1))
+
+        dateR.place(x=323, y=57)
+        
+        excel_button = CTkButton(master=WorkBody, text="Export to Excel", corner_radius=15,
+                                  fg_color="black", text_color="white", hover_color="#383838", width=311, height=50, font=('lato', 18),
+                                  command = export_to_excel)
+
+        excel_button.place(x=874, y=620)
+        
+        treeview_frame = Frame(WorkBody, width=780, height=585, bg="#F0F0F0")
+        treeview_frame.place(x=33, y=105)
+        
+        style = ttk.Style()
+        style.configure("mystyle.Treeview.Heading", font=('Lato', 14), rowheight=70)
+        style.configure("mystyle.Treeview", font=('Lato', 12), rowheight=30)
+   
+                   
+        columns = ('#1', '#2')
+        treeview = ttk.Treeview(treeview_frame, columns=columns, show='headings', height=27, style="mystyle.Treeview")
+        treeview.heading('#1', text='Name', anchor=W)
+        treeview.heading('#2', text='Status', anchor=W)
+        
+        treeview.column('#1', width=400)
+        treeview.column('#2', width=400)
+        
+        treeview.grid(row=0, column=0, sticky="nsew")
+        
+        treeview.tag_configure('evenrow', background="white")
+        treeview.tag_configure('oddrow', background="light blue")
+
+        update_treeview()
+        
+    
+    def AnnouncementPage():
+        
+        root.title("Inconnect - Announcements")
+        RescBody = Frame(MainBody, width=1285, height=750)
+        RescBody.pack(side=LEFT)
+        
+        lb = Label(RescBody, text="Welcome To Announcements", font=('Lato', 24))
+        lb.place(x=51, y=50)
+        lb.pack
+        
+        anntext = st.ScrolledText(RescBody)
+        anntext.config(wrap=WORD, width=53, height=25, font=('lato', 16))
+        anntext.place(x=51, y=115)
+        
+        def select_mail():
+            cur.execute("SELECT email FROM teacherdata")
+            teachers  = cur.fetchall()
+            print(teachers)
+            send_email(teachers)
+
+        def select_mail_students():
+            cur.execute("SELECT email FROM studentdata WHERE teacher_id = ?", (email,))
+            students = cur.fetchall()
+            print(students)
+
+            send_email(students)
+            
+        def select_mail_all_students():
+            cur.execute("SELECT email FROM studentdata")
+            students  = cur.fetchall()
+            print(students)
+            send_email(students)
+    
+        t_button = CTkButton(master=RescBody, text="Send Announcement to Teachers", corner_radius=15, font=("lato", 16), 
+                                  fg_color="black", text_color="white", hover_color="#383838", width=433, height=50, command=select_mail)
+
+        t_button.place(x=804, y=117)
+        
+        
+        s_button = CTkButton(master=RescBody, text="Send Announcement to Students", corner_radius=15, font=("lato", 16), 
+                                  fg_color="black", text_color="white", hover_color="#383838", width=433, height=50, command=select_mail_students)
+
+        s_button.place(x=804, y=206)
+        
+        
+        
+        sa_button = CTkButton(master=RescBody, text="Send Announcement to all Students", corner_radius=15, font=("lato", 16), 
+                                  fg_color="black", text_color="white", hover_color="#383838", width=433, height=50, command=select_mail_all_students)
+
+        sa_button.place(x=804, y=294)
+        
+        def send_email(recipients):
+            try:
+                for recipient in recipients:
+                    to_email = recipient[0]
+                    msg = EmailMessage()
+                    msg["From"] = "inconnect.otp@gmail.com"
+                    msg["To"] = to_email
+                    msg["Subject"] = "Announcement"
+
+                    annbody = anntext.get("1.0", "end-1c")  # Get text from anntext widget
+                    annbody_with_line_breaks = annbody.replace('\n', '<br>')
+                    
+                    cur.execute("SELECT fullname FROM teacherdata WHERE email = ?", (email,))
+                    tname = cur.fetchone()[0]
+
+                    message_body = f"""
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+                        <title>Email</title>
+
+                        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+                    </head>
+                    <body style="margin: 0; font-family: 'Poppins', sans-serif; background: #ffffff; font-size: 14px;">
+                        <main>
+                            <div style="margin: 0; margin-top: 10px; padding: 50px 30px 115px; border-radius: 30px;">
+                                <div style="width: 100%; max-width: 489px; margin: 0 auto;">
+                                    <h1 style="margin: 0; font-size: 24px; font-weight: 500; color: #1f1f1f;">Announcement</h1>
+                                    <p style="margin: 0; margin-top: 17px; font-size: 16px; font-weight: 500;">Greetings {annbody_with_line_breaks}</p>
+                                    <p style="margin: 0; margin-top: 17px; font-weight: 500; letter-spacing: 0.56px;">
+                                    </p>
+                                    <p style="margin: 0; margin-top: 17px; font-size: 16px; font-weight: 500;">Regards,<br>{tname}</p>
+                                </div>
+                            </div>
+                        </main>
+                    </body>
+                    </html>
+                    """
+
+                    msg.add_alternative(message_body, subtype='html')
+
+                    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                        smtp.login("inconnect.otp@gmail.com", 'lqomufxspqvisoeg')
+                        smtp.send_message(msg)
+
+                    print(f"Email sent to {to_email}")
+
+            except Exception as e:
+                print("Error:", e)
+
+            finally:
+                notify = Notification(
+                    app_id="Inconnect", 
+                    title="Email Sent", 
+                    msg=f"Email Sent Successfully", 
+                    duration="short", 
+                )
+                notify.set_audio(audio.Mail, loop=False)
+                notify.show()
+                
+        
+    def StudentPage():
+        
+        root.title("Inconnect - Students")
+        RescBody = Frame(MainBody, width=1285, height=750)
+        RescBody.pack(side=LEFT)
+                
+        lb = Label(RescBody, text="Welcome To Students View Page", font=('Lato', 24))
+        lb.place(x=51, y=50)
+        lb.pack
+         
+        def adduser():
+            
+            adduser_window = Tk()
+            adduser_window.geometry("750x750+200+150")
+            adduser_window.state("normal")
+            adduser_window.resizable(False, False)
+            adduser_window.title("Inconnect Main")
+
+            fn = customtkinter.CTkEntry(master=adduser_window, font=("lato", 24), height=65, placeholder_text='Enter First Name', width=303,
+                                        fg_color="#F1F1F1", text_color="black", border_width=3, placeholder_text_color="grey")
+            
+            fn.place(x=54, y=45)
+            
+            ln = customtkinter.CTkEntry(master=adduser_window, font=("lato", 24), height=65, placeholder_text='Enter Last Name', width=303,
+                                        fg_color="#F1F1F1", text_color="black", border_width=3, placeholder_text_color="grey")
+            
+            ln.place(x=393, y=45)
+            
+            em = customtkinter.CTkEntry(master=adduser_window, font=("lato", 24), height=65, placeholder_text='Email', width=606,
+                                        fg_color="#F1F1F1", text_color="black", border_width=3, placeholder_text_color="grey")
+            
+            em.place(x=54, y=145)
+            
+            subject_num = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+
+            studentSubject = StringVar(adduser_window)
+            studentSubject.set("Select Number of Subjects")
+
+            sent = OptionMenu(adduser_window, studentSubject, *subject_num)
+            sent.config(bg="#E7E7E7", fg="black", relief="flat", height=3,
+                        highlightcolor="black", highlightbackground="black", width=42)
+
+
+            sent.place(x=54, y=245)
+            
+            def add_to_database():
+                
+                student_id = random.randint(1000000, 9999999)
+
+                if not fn.get() or not ln.get() or not em.get() or not studentSubject.get():
+                    messagebox.showerror("Error", "Please fill in all fields")
+                    return
+
+
+                cur.execute("""INSERT INTO studentdata 
+                                (studentID, firstname, lastname, subjects, teacher_id, email)
+                                VALUES (?, ?, ?, ?, ?, ?)""",
+                                (student_id, fn.get().capitalize(), ln.get().capitalize(), studentSubject.get(), email, em.get()))
+
+                cur.execute("""
+                    UPDATE studentdata
+                    SET grade = (SELECT homeroomgrade FROM teacherdata WHERE email = ?),
+                        division = (SELECT division FROM teacherdata WHERE email = ?)
+                    WHERE studentID = ?
+                """, (email, email, student_id))
+
+                conn.commit()
+
+                fn.delete(0, 'end')
+                ln.delete(0, 'end')
+                em.delete(0, 'end')
+
+                studentSubject.set("Select Number of Subjects")
+                
+                student_id = random.randint(1000000, 9999999)
+
+                display_student_data()
+                conn.commit()
+                
+            
+            submitBTN = customtkinter.CTkButton(master=adduser_window, text="Submit", font=("lato", 24), 
+                                    cursor="hand2", height=45, width=642, command=add_to_database,
+                text_color="black", corner_radius=5, fg_color="#CDCDCD", hover_color="#989898")
+            submitBTN.place(x=55, y=665) 
+            adduser_window.mainloop()
+
+
+        def edit_student():
+            
+            selected_item = studentstable.selection()
+            
+            if selected_item:
+                values = studentstable.item(selected_item)['values']
+                edit_window = Tk()
+                edit_window.title("Edit Student")
+
+                student_id = values[0]
+                first_name = values[1].split()[0]
+                last_name = values[1].split()[1]
+                grade = values[2]
+                division = values[3]
+                subjects = values[4]
+
+                fn = customtkinter.CTkEntry(master=edit_window, font=("lato", 24), height=65, placeholder_text='Enter First Name',
+                                            width=303, fg_color="#F1F1F1", text_color="black", border_width=3,
+                                            placeholder_text_color="grey")
+                fn.insert(0, first_name)
+                
+                fn.grid(row=0, column=0, padx=10, pady=10)
+
+                ln = customtkinter.CTkEntry(master=edit_window, font=("lato", 24), height=65, placeholder_text='Enter Last Name',
+                                            width=303, fg_color="#F1F1F1", text_color="black", border_width=3,
+                                            placeholder_text_color="grey")
+                
+                ln.insert(0, last_name)
+                
+                ln.grid(row=1, column=0, padx=10, pady=10)
+                
+                subject_num = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+
+                student_subject = StringVar(edit_window)
+                student_subject.set(subjects)
+                subject_ent = OptionMenu(edit_window, student_subject, *subject_num)
+                subject_ent.grid(row=4, column=0, padx=10, pady=10)
+
+                def save_changes():
+                    
+                    updated_first_name = fn.get().title()
+                    updated_last_name = ln.get().title()
+                    updated_subjects = student_subject.get()
+
+                    # Update the database
+                    cur.execute("""
+                        UPDATE studentdata
+                        SET firstname=?, lastname=?, subjects=?
+                        WHERE studentID=?
+                        """, (updated_first_name, updated_last_name, updated_subjects, student_id))
+                    conn.commit()
+
+                    edit_window.destroy()
+
+                    display_student_data()
+
+                save_btn = Button(edit_window, text="Save Changes", command=save_changes)
+                save_btn.grid(row=5, column=0, padx=10, pady=10)
+
+
+        def delete_student():
+            
+            selected_item = studentstable.selection()
+            if selected_item:
+                
+                values = studentstable.item(selected_item)['values']
+                student_id = values[0]
+                confirmation = messagebox.askyesno("Confirmation", f"Are you sure you want to delete student with ID {student_id}?")
+                
+                if confirmation:
+                    cur.execute("DELETE FROM studentdata WHERE studentID=?", (student_id,))
+                    conn.commit()
+                    studentstable.delete(selected_item)
+                    messagebox.showinfo("Success", f"Student with ID {student_id} has been deleted successfully.")
+
+        adddata = Button(RescBody, cursor="hand2", image=add_image, relief="flat", text="work", foreground='black', borderwidth=0, command=adduser)
+        adddata.place(x=1033, y=50)
+        ToolTip(adddata, msg='Add Student', delay=0.1)
+        
+        editdata = Button(RescBody, cursor="hand2", image=edit_image, relief="flat", text="work", foreground='black', borderwidth=0, command=edit_student)
+        editdata.place(x=1087, y=50)
+        ToolTip(editdata, msg='Edit Student', delay=0.1)
+        
+        removedata = Button(RescBody, cursor="hand2", image=remove_image, relief="flat", text="work", foreground='black', borderwidth=0, command=delete_student)
+        removedata.place(x=1141, y=50)
+        ToolTip(removedata, msg='Delete Student', delay=0.1)
+        
+        global studentstable
+        studentstable = ttk.Treeview(RescBody, height=25)
+        studentstable['columns'] = ("Student ID", "Full Name", "Grade", "Division", "Subjects Taken")
+        
+        def fetch_student_data():
+            
+            cur.execute("SELECT studentID, firstname, lastname, grade, division, subjects FROM studentdata WHERE teacher_id = ?", (email,))
+            rows = cur.fetchall()
+            
+            formatted_data = []
+            for row in rows:
+                student_id, first_name, last_name, grade, division, subjects = row
+                full_name = f"{first_name} {last_name}"
+                formatted_data.append((student_id, full_name, grade, division, subjects))
+                
+            return formatted_data
+
+        def display_student_data():
+            
+            studentstable.delete(*studentstable.get_children())
+            
+            data = fetch_student_data()
+            
+            for i, (student_id, full_name, grade, division, subjects) in enumerate(data, start=1):
+                tag = 'evenrow' if i % 2 == 0 else 'oddrow'
+                studentstable.insert('', 'end', values=(student_id, full_name, grade, division, subjects), tags=(tag,))
+                
+        display_student_data()
+        
+        studentstable.column("#0", width=0, minwidth=0, stretch=NO)
+        studentstable.column("Student ID", anchor=W, width=150, minwidth=50, stretch=NO)
+        studentstable.column("Full Name",anchor=W, width=245, minwidth=50)
+        studentstable.column("Grade", anchor=W, width=245, minwidth=50, stretch=NO)
+        studentstable.column("Division", anchor=W, width=245, minwidth=50, stretch=NO)
+        studentstable.column("Subjects Taken", anchor=W, width=245, minwidth=50, stretch=NO)
+        
+        studentstable.heading("Student ID", text="Student ID", anchor=CENTER)
+        studentstable.heading("Full Name", text="Full Name", anchor=CENTER)
+        studentstable.heading("Grade", text="Grade", anchor=CENTER)
+        studentstable.heading("Division", text="Division", anchor=CENTER)
+        studentstable.heading("Subjects Taken", text="Subjects Taken", anchor=CENTER)
+
+        studentstable.place(x=60, y=105)
+        
+        studentstable.tag_configure('evenrow', background="white")
+        studentstable.tag_configure('oddrow', background="light grey")
+        
+        
+    def NotesPage():
+        
+        root.title("Inconnect - Notes")
+        NoteBody = Frame(MainBody, width=1285, height=750)
+        NoteBody.pack(side=LEFT)
+        
+        lb = Label(NoteBody, text="Welcome To Notes", font=('Lato', 24))
+        lb.place(x=33, y=50)
+        lb.pack
+
+        openai.api_key = "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"
+
+        pdf = FPDF('P', 'mm', 'Letter')  
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=TRUE, margin=1)
+        pdf.set_line_width(1.5)
+
+        responseText = st.ScrolledText(MainBody)
+
+        #main API text fetch
+        def run():
+            for _ in range(10):
+                time.sleep(0.1)
+                
+            responseText.delete(1.0, END)
+
+            prompting = promptGet.get()
+            if prompting == "":
+                messagebox.showerror(title="ERROR", message="please enter text")
+            
+            else:
+                mssg = f"write about {prompting} use proper capitalization"
+
+                response = openai.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    temperature=1,
+                    messages=[
+                        {"role": "user", "content": mssg}
+                    ] 
+                )
+                
+                assistantResponse = response.choices[0].message.content
+
+                chunk_size = 500  
+                for i in range(0, len(assistantResponse), chunk_size):
+                    chunk = assistantResponse[i:i + chunk_size]
+                    responseText.insert(END, chunk)
+                    responseText.update_idletasks()
+
+
+
+        #progress bar    
+        def start_function_with_loader():
+            def run_long_running_function():
+                run()
+                time.sleep(2)
+
+
+            thread = threading.Thread(target=run_long_running_function)
+            thread.start()
+
+
+        #find text
+        def find_all(nocase=False):
+            
+            find_text = simpledialog.askstring("Find", "Enter text to find:")
+            
+            if find_text:
+                
+                content = responseText.get(1.0, END)
+                start = 1.0
+                
+                while True:
+                    if nocase:
+                        pos = responseText.search(find_text, start, stopindex=END, nocase=1)
+                    else:
+                        pos = responseText.search(find_text, start, stopindex=END)
+                    if not pos:
+                        break
+                    end = f"{pos}+{len(find_text)}c"
+                    responseText.tag_add("found", pos, end)
+                    start = end
+                responseText.tag_config("found", background="#95A5A6", foreground='white')
+
+        #replace text
+        def replace_all(nocase=False):
+            
+            find_text = simpledialog.askstring("Find", "Enter text to find:")
+            replace_text = simpledialog.askstring("Replace", f"Replace '{find_text}' with:", parent=NoteBody)
+            
+            if find_text and replace_text:
+                
+                content = responseText.get(1.0, END)
+                
+                if nocase:
+                    content = content.lower()
+                    find_text = find_text.lower()
+                content = content.replace(find_text, replace_text)
+                responseText.delete(1.0, END)
+                responseText.insert(INSERT, content)
+
+        #save and send pdf
+        def send_email():
+            
+            fileWT = responseText.get(1.0, END)
+            
+            askfor_mail = messagebox.askyesno("Email PDF", "Do u want to mail this pdf to all your students?")
+            
+            if askfor_mail:
+                
+                with open("files/content.txt", 'w') as file:
+                    
+                    file.write(f"Title: {string.capwords("Document")}\n\n")
+                    
+                    file.write(f"{fileWT}\n\n")
+                    
+                    cur.execute(f"SELECT * FROM teacherdata WHERE email = ?", (email,))
+                    nuser = cur.fetchone()
+                    file.write(f"By: {nuser[1]}")
+
+        
+                pdf.set_font("Times")
+
+                f = open("resources/content.txt", "r")
+
+                for x in f: 
+                    pdf.multi_cell(190, 5, txt = x, align = 'L')
+                    
+                pdf.output("text.pdf")
+            
+                print("sendingg....")
+                
+                smtpPort = 587
+                smtpServer = "smtp.gmail.com"
+            
+                emailFrom = "inconnect.otp@gmail.com"
+                pswd = "lqomufxspqvisoeg"
+                body = f"message from - {email}"
+                
+                cur.execute("SELECT email FROM studentdata WHERE teacher_id = ?", (email,))
+                results = cur.fetchall()
+                print(results)
+                
+                try:      
+                     
+                    print("sendingg....")
+                              
+                    for row in results:
+                        
+                        print("sendingg....")
+                        
+                        server = smtplib.SMTP(smtpServer, smtpPort)
+                        server.starttls()
+                        server.login(emailFrom, pswd)
+                        to_email = row[0]
+                        
+                        print("sendingg....")
+
+                        msg = MIMEMultipart()
+                        msg["From"] = "inconnect.otp@gmail.com"
+                        msg["To"] = to_email
+                        msg["Subject"] = f"{nuser[1]} - Has Sent You a PDF"
+
+                        msg.attach(MIMEText(body, "plain"))
+
+                        filename = "text.pdf"
+                        attachment = open(filename, "rb")
+
+                        attachment_package = MIMEBase("application", "octet-stream")
+                        attachment_package.set_payload(attachment.read())
+                        encoders.encode_base64(attachment_package)
+                        attachment_package.add_header("Content-Disposition", f"attachment; filename= {filename}")
+                        msg.attach(attachment_package)
+
+                        textt = msg.as_string()
+                        
+                        server.sendmail(emailFrom, to_email, textt)
+                        print(f"Email sent to {to_email}")
+                
+                except Exception as e:
+                    
+                    print(e)
+                    
+                finally:
+                    
+                    notify = Notification(
+                        app_id="Inconnect", 
+                        title="Email Sent", 
+                        msg=f"Email Sent to all Students", 
+                        duration="short", 
+                        )
+                    
+                    notify.set_audio(audio.Mail, loop=False)
+                    notify.show()
+                    
+            else:
+                
+                pass
+
+                
+            
+        def clear_text():
+            
+            responseText.delete(1.0, END)
+          
+        def save_note():
+            
+            note_content = responseText.get(1.0, END)
+            if not note_content.strip():
+                messagebox.showwarning("Warning", "No content to save.")
+                return
+
+            title = note_content.split('\n', 1)[0].strip()
+            file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt")], initialfile=f"{title}.txt" if title else None)
+            if file_path:
+                with open(file_path, "w") as file:
+                    file.write(note_content)
+                messagebox.showinfo("Success", "Note saved successfully.")
+
+        def open_note():
+            responseText.delete(1.0, END)
+            file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
+            if file_path:
+                with open(file_path, "r") as file:
+                    note_content = file.read()
+                responseText.insert(1.0, note_content)
+        
+        def new_note():
+            note_text = responseText.get(1.0, END)
+            if note_text.strip() == "":
+                messagebox.showwarning("Warning", "Please enter a note before adding.")
+                
+            elif note_text != "":
+                warnDel  = messagebox.askyesnocancel("Warning", f"Do u want to save {note_text.split('\n', 1)[0].strip()}?")
+                if warnDel is not None:
+                    if warnDel:
+                        save_note()
+                    else:
+                        responseText.delete(1.0, END) 
+                else:
+                    return
+
+
+        responseText = st.ScrolledText(NoteBody, font=('Lato', 15, 'bold'), padx=10, pady=10, wrap=WORD)
+        responseText.place(x=33, y=106, width=1223, height=564)
+        responseText.config(relief='solid', undo=TRUE, borderwidth=0, background="#F0F0F0")
+
+
+        promptGet = customtkinter.CTkEntry(master=NoteBody, font=('Lato', 15, 'bold'), height=50, width=1000, 
+                            fg_color='white', placeholder_text="Use ChatGPT", text_color='black')
+        
+        promptGet.place(x=33, y=685)
+
+
+
+        submitButton = customtkinter.CTkButton(master=NoteBody, text="Submit", command=start_function_with_loader, 
+                                height=50, width=166, text_color="black", fg_color="white", border_width=2,
+                                border_color="black", hover_color="grey")
+        
+        submitButton.place(x=1056, y=685)
+        submitButton.configure(font=('Lato', 18, 'bold'), cursor='hand2')
+
+
+        find_button = Button(NoteBody, cursor="hand2", image=text_search, relief="flat", foreground='black', borderwidth=0, command=lambda: find_all(nocase=True))
+        find_button.place(x=888, y=54, height=24, width=24)
+        find_button.config(fg='black', width=10, relief='solid', background='#F0F0F0', activebackground='#F0F0F0', cursor='hand2')
+        ToolTip(find_button, msg='Search Text', delay=0.1)
+        
+
+        replace_button = Button(NoteBody, cursor="hand2", image=text_replace, relief="flat", foreground='black', borderwidth=0, command=lambda: replace_all(nocase=True))
+        replace_button.place(x=934, y=54, height=24, width=24)
+        replace_button.config(fg='black', width=10, relief='solid', background='#F0F0F0', activebackground='#F0F0F0', cursor='hand2')
+        ToolTip(replace_button, msg='Replace Text', delay=0.1)
+        
+
+        save_button = Button(NoteBody, cursor="hand2", image=file_save, relief="flat", foreground='black', borderwidth=0, command=save_note)
+        save_button.place(x=1036, y=54, height=24, width=24)
+        save_button.config(fg='black', width=10, relief='solid', background='#F0F0F0', activebackground='#F0F0F0', cursor='hand2')
+        ToolTip(save_button, msg='Save File', delay=0.1)
+        
+
+        open_button = Button(NoteBody, cursor="hand2", image=file_open, relief="flat", foreground='black', borderwidth=0, command=open_note)
+        open_button.place(x=1086, y=54, height=24, width=24)
+        open_button.config(fg='black', width=10, relief='solid', background='#F0F0F0', activebackground='#F0F0F0', cursor='hand2')
+        ToolTip(open_button, msg='Open File', delay=0.1)
+        
+
+        addnew_button = Button(NoteBody, cursor="hand2", image=file_add, relief="flat", foreground='black', borderwidth=0, command=new_note)
+        addnew_button.place(x=1136, y=54, height=24, width=24)
+        addnew_button.config(fg='black', width=10, relief='solid', background='#F0F0F0', activebackground='#F0F0F0', cursor='hand2')
+        ToolTip(addnew_button, msg='New File', delay=0.1)
+        
+
+        clear_button = Button(NoteBody, cursor="hand2", image=file_delete, relief="flat", foreground='black', borderwidth=0, command=clear_text)
+        clear_button.place(x=1186, y=54, height=24, width=24)
+        clear_button.config(fg='black', background='#F0F0F0', relief='solid', activebackground='#F0F0F0', cursor='hand2')
+        ToolTip(clear_button, msg='Clear All\n Text', delay=0.1)
+
+
+        export_button = Button(NoteBody, cursor="hand2", image=file_mail, relief="flat", foreground='black', borderwidth=0, command=send_email)
+        export_button.place(x=1236, y=54, height=24, width=24)
+        export_button.config(fg='black', background='#F0F0F0', relief='solid', activebackground='#F0F0F0', cursor='hand2')
+        ToolTip(export_button, msg='Export PDF\n as Email', delay=0.1)
+        
+        
+    def ProfilePage():
+        
+        logout_msgbox = messagebox.askyesno("Log Out?", "Do You want To log out?")
+        
+        if logout_msgbox:
+            log_out()
+        else:
+            pass 
+
+        
+
+    Taskbar = Frame(root, bg="black", width=215, height=750)
+    Taskbar.pack(side=LEFT)
+    Taskbar.propagate(False)
+
+    MainBody = Frame(root, width=1285, height=750)
+    MainBody.pack(side=LEFT)
+
+    welcomeLbl = Label(MainBody, text="Welcome, Start Navigating by Clicking on ""Dashboard"" ", font=('Lato', 24))
+    welcomeLbl.place(x=51, y=50)
+    
+
+    def hide_indicate():
+        home_indicate.config(bg="black")
+        attendance_text.config(bg="black")
+        notes_indicate.config(bg="black")
+        announce_text.config(bg="black")
+        students_text.config(bg="black")
+        
+        
+    def removePage():
+        for frame in MainBody.winfo_children():
+            frame.destroy()
+        
+
+    def indicate(lb, page):
+        hide_indicate()
+        lb.config(bg="white")
+        
+        removePage()
+        page()
+        
+
+    home_button = Button(Taskbar, text='Dashboard', font=("Lato", 16), fg="#8F8F8F", cursor="hand2", 
+                    bg="black", borderwidth=0, activebackground="black", activeforeground="#8F8F8F", 
+                    command=lambda: indicate(home_indicate, DashPage))
+
+    home_button.place(x=35, y=50)
+
+    home_indicate = Label(Taskbar, text="", bg="black")
+    home_indicate.place(x=30, y=55, width=5, height=30)
+
+
+
+    notes_button = Button(Taskbar, text='Notes', font=("Lato", 16), fg="#8F8F8F", cursor="hand2",
+                    bg="black", borderwidth=0, activebackground="black", activeforeground="#8F8F8F", 
+                    command=lambda: indicate(notes_indicate, NotesPage))
+
+    notes_button.place(x=35, y=133)
+
+    notes_indicate = Label(Taskbar, text="", bg="black")
+    notes_indicate.place(x=30, y=138, width=5, height=30)
+
+
+
+    attendance_button = Button(Taskbar, text='Attendance', font=("Lato", 16), fg="#8F8F8F", cursor="hand2",
+                    bg="black", borderwidth=0, activebackground="black", activeforeground="#8F8F8F", 
+                    command=lambda: indicate(attendance_text, AttendacePage))
+
+    attendance_button.place(x=35, y=217)
+
+    attendance_text = Label(Taskbar, text="", bg="black")
+    attendance_text.place(x=30, y=222, width=5, height=30)
+
+
+    announce_button = Button(Taskbar, text='Announcement', font=("Lato", 16), fg="#8F8F8F", cursor="hand2",
+                    bg="black", borderwidth=0, activebackground="black", activeforeground="#8F8F8F", 
+                    command=lambda: indicate(announce_text, AnnouncementPage))
+
+    announce_button.place(x=35, y=301)
+
+    announce_text = Label(Taskbar, text="", bg="black")
+    announce_text.place(x=30, y=306, width=5, height=30)
+
+
+    students_button = Button(Taskbar, text='Students', font=("Lato", 16), fg="#8F8F8F", cursor="hand2",
+                    bg="black", borderwidth=0, activebackground="black", activeforeground="#8F8F8F", 
+                    command=lambda: indicate(students_text, StudentPage))
+
+    students_button.place(x=35, y=386)
+
+    students_text = Label(Taskbar, text="", bg="black")
+    students_text.place(x=30, y=391, width=5, height=30)
+
+
+    cur.execute(f"SELECT * FROM teacherdata WHERE email = ?", (email,))
+    user = cur.fetchone()
+    
+    
+    profile_button = Button(Taskbar, bg="black", borderwidth=0, fg="white", font=("Lato", 12), cursor="hand2",
+                    text = f"{user[1]}", activebackground="black", activeforeground="#8F8F8F", 
+                    command = lambda: indicate(profile_text, ProfilePage))
+
+    profile_button.place(x=35, y=670)
+    ToolTip(profile_button, msg='Log Out', delay=0.1)
+    
+    profile_text = Label(Taskbar, text="", bg="black")
+    
+    aimage = Image.open("resources/Plus.png")
+    aresize = aimage.resize((24, 24))
+    add_image = ImageTk.PhotoImage(aresize)
+    edit_image = ImageTk.PhotoImage(Image.open("resources/Edit.png"))
+    remove_image = ImageTk.PhotoImage(Image.open("resources/Recycle Bin.png"))
+    
+    file_add = ImageTk.PhotoImage(Image.open("resources/file-plus.png"))
+    file_save = ImageTk.PhotoImage(Image.open("resources/Parcel.png"))
+    file_save_white = ImageTk.PhotoImage(Image.open("resources/parcel white.png"))
+    file_open = ImageTk.PhotoImage(Image.open("resources/download file.png"))
+    file_delete = ImageTk.PhotoImage(Image.open("resources/file-delete.png"))
+    file_mail = ImageTk.PhotoImage(Image.open("resources/file-upload.png"))
+    text_search = ImageTk.PhotoImage(Image.open("resources/Research.png"))
+    text_replace = ImageTk.PhotoImage(Image.open("resources/Reload.png"))
+    
+    date_left_image = ImageTk.PhotoImage(Image.open("resources/leftV.png"))
+    date_right_image = ImageTk.PhotoImage(Image.open("resources/rightV.png"))
+    
+    
+    root.mainloop()
+
+LogIn()
+
+login.mainloop()
